@@ -473,9 +473,9 @@ module ActiveModel
 
     def filtered_attributes
       unless @filtered_attributes
-        if filter = valid_filter(:only)
+        if filter = extract_filterable_attributes(:only)
           @filtered_attributes = filter
-        elsif filter = valid_filter(:except)
+        elsif filter = extract_filterable_attributes(:except)
           @filtered_attributes = _attributes.keys.map(&:to_s) - filter
         else
           @filtered_attributes = _attributes.keys.map(&:to_s)
@@ -484,9 +484,10 @@ module ActiveModel
       @filtered_attributes
     end
 
-    def valid_filter(name)
+    # Returns a list of filterable attributes or nil if none exist
+    def extract_filterable_attributes(name)
       filters = [*@options[name]].map(&:to_s)
-      filters.any?(&:present?) ? filters : false
+      filters.any?(&:present?) ? filters : nil
     end
 
     alias :read_attribute_for_serialization :send
