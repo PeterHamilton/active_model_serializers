@@ -1352,4 +1352,121 @@ class SerializerTest < ActiveModel::TestCase
     a_serializer = serializer.new(post, :scope => user, :scope_name => :current_user)
     assert a_serializer.has_permission?
   end
+
+  def test_filter_attribute_caching
+    user_class = Class.new
+
+    serializer_class = Class.new(ActiveModel::Serializer) do
+      attribute :first_name
+      attribute :last_name
+    end
+
+    user = user_class.new
+    serializer = serializer_class.new(user)
+
+    original_attributes = serializer.filtered_attributes
+    new_attributes = serializer.filtered_attributes
+
+    assert_equal(original_attributes.object_id, new_attributes.object_id)
+  end
+
+  def test_filter_dont_evaluate_irrelevant_attributes
+    user_class = Class.new do
+      def dont_call_me
+        raise StandardError
+      end
+    end
+
+    serializer_class = Class.new(ActiveModel::Serializer) do
+      attribute :dont_call_me
+    end
+
+    user = user_class.new
+    serializer = serializer_class.new(user)
+
+    assert_raise StandardError do
+      serializer.as_json
+    end
+  end
+
+  def test_filter_use_all_attributes_by_default
+    user = User.new
+    user_serializer = MyUserSerializer.new(user)
+
+    hash = user_serializer.as_json
+
+    assert_equal({
+      :my_user => {
+        :first_name => "Jose",
+        :last_name => "Valim"
+      }
+    }, hash)
+  end
+
+  def test_filter_handle_nil_only
+    user = User.new
+    user_serializer = MyUserSerializer.new(user, {only: nil})
+
+    hash = user_serializer.as_json
+
+    assert_equal({
+      :my_user => {
+        :first_name => "Jose",
+        :last_name => "Valim"
+      }
+    }, hash)
+  end
+
+  def test_filter_handle_nil_except
+    user = User.new
+    user_serializer = MyUserSerializer.new(user, {except: nil})
+
+    hash = user_serializer.as_json
+
+    assert_equal({
+      :my_user => {
+        :first_name => "Jose",
+        :last_name => "Valim"
+      }
+    }, hash)
+  end
+
+  def test_filter_only_attributes
+    user = User.new
+    user_serializer = MyUserSerializer.new(user, {only: [:first_name]})
+
+    hash = user_serializer.as_json
+
+    assert_equal({
+      :my_user => {
+        :first_name => "Jose"
+      }
+    }, hash)
+  end
+
+  def test_filter_except_attributes
+    user = User.new
+    user_serializer = MyUserSerializer.new(user, {except: [:first_name]})
+
+    hash = user_serializer.as_json
+
+    assert_equal({
+      :my_user => {
+        :last_name => "Valim"
+      }
+    }, hash)
+  end
+
+  def test_filter_select_only_over_except
+    user = User.new
+    user_serializer = MyUserSerializer.new(user, {only: [:first_name], except: [:last_name]})
+
+    hash = user_serializer.as_json
+
+    assert_equal({
+      :my_user => {
+        :first_name => "Jose"
+      }
+    }, hash)
+  end
 end
