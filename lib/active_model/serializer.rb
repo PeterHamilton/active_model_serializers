@@ -454,7 +454,7 @@ module ActiveModel
         method << "  h = {}\n"
 
         _attributes.each do |name,key|
-          method << "  h[:#{key}] = read_attribute_for_serialization(:#{name}) if send #{INCLUDE_METHODS[name].inspect}\n"
+          method << "  h[:#{key}] = read_attribute_for_serialization(:#{name}) if serialize_attribute?(#{name.inspect})\n"
         end
         method << "  h\nend"
 
@@ -465,6 +465,29 @@ module ActiveModel
     # Returns options[:scope]
     def scope
       @options[:scope]
+    end
+
+    def serialize_attribute?(name)
+      send(INCLUDE_METHODS[name]) && filtered_attributes.include?(name.to_s)
+    end
+
+    def filtered_attributes
+      unless @filtered_attributes
+        if filter = extract_filterable_attributes(:only)
+          @filtered_attributes = filter
+        elsif filter = extract_filterable_attributes(:except)
+          @filtered_attributes = _attributes.keys.map(&:to_s) - filter
+        else
+          @filtered_attributes = _attributes.keys.map(&:to_s)
+        end
+      end
+      @filtered_attributes
+    end
+
+    # Returns a list of filterable attributes or nil if none exist
+    def extract_filterable_attributes(name)
+      filters = [*@options[name]].map(&:to_s)
+      filters.any?(&:present?) ? filters : nil
     end
 
     alias :read_attribute_for_serialization :send
