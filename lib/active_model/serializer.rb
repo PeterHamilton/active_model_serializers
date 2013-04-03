@@ -473,15 +473,20 @@ module ActiveModel
 
     def filtered_attributes
       unless @filtered_attributes
-        if @options.has_key?(:only) && @options[:only].present?
-          @filtered_attributes = @options[:only].map(&:to_s)
-        elsif @options.has_key?(:except) && @options[:except].present?
-          @filtered_attributes = _attributes.keys.map(&:to_s) - @options[:except].map(&:to_s)
+        if filter = valid_filter(:only)
+          @filtered_attributes = filter
+        elsif filter = valid_filter(:except)
+          @filtered_attributes = _attributes.keys.map(&:to_s) - filter
         else
           @filtered_attributes = _attributes.keys.map(&:to_s)
         end
       end
       @filtered_attributes
+    end
+
+    def valid_filter(name)
+      filters = [*@options[name]].map(&:to_s)
+      filters.any?(&:present?) ? filters : false
     end
 
     alias :read_attribute_for_serialization :send

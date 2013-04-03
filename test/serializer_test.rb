@@ -1417,9 +1417,37 @@ class SerializerTest < ActiveModel::TestCase
     }, hash)
   end
 
+  def test_filter_handle_empty_array_only
+    user = User.new
+    user_serializer = MyUserSerializer.new(user, {only: [""]})
+
+    hash = user_serializer.as_json
+
+    assert_equal({
+      :my_user => {
+        :first_name => "Jose",
+        :last_name => "Valim"
+      }
+    }, hash)
+  end
+
   def test_filter_handle_nil_except
     user = User.new
     user_serializer = MyUserSerializer.new(user, {except: nil})
+
+    hash = user_serializer.as_json
+
+    assert_equal({
+      :my_user => {
+        :first_name => "Jose",
+        :last_name => "Valim"
+      }
+    }, hash)
+  end
+
+  def test_filter_handle_empty_array_except
+    user = User.new
+    user_serializer = MyUserSerializer.new(user, {except: [""]})
 
     hash = user_serializer.as_json
 
